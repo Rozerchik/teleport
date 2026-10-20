@@ -585,6 +585,7 @@ impl Client {
         share_id: u32,
         scard_stats: &ScardStats,
     ) -> ClientResult<()> {
+        warn!("Connection activated");
         // Write smart card stats on the second activation (the first one that
         // follows a Deactivation-Reactivation Sequence).
         if scard_stats.record_connection_activated() == 2 {

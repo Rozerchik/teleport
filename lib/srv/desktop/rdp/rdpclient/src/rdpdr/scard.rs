@@ -230,6 +230,7 @@ impl ScardBackend {
         call: ScardCall,
     ) -> PduResult<()> {
         self.stats.total_calls.fetch_add(1, Ordering::Relaxed);
+        warn!("handling scard request {}", self.stats.total_calls.load(Ordering::Relaxed));
         match self.handle_impl(&req, call)? {
             ScardHandleResponse::Deferred => Ok(()),
             ScardHandleResponse::Common(response) => {
