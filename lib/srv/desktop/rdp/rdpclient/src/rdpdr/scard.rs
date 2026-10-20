@@ -155,6 +155,11 @@ pub struct ScardBackend {
     cert_der: Vec<u8>,
     key_der: Vec<u8>,
     pin: String,
+
+    // DEBUG
+    total_calls: usize,
+    read_cache_calls: usize,
+    write_cache_calls: usize,
 }
 
 impl std::fmt::Debug for ScardBackend {
@@ -186,6 +191,9 @@ impl ScardBackend {
             cert_der,
             key_der,
             pin,
+            total_calls: 0,
+            read_cache_calls: 0,
+            write_cache_calls: 0,
         }
     }
 
@@ -194,6 +202,7 @@ impl ScardBackend {
         req: DeviceControlRequest<ScardIoCtlCode>,
         call: ScardCall,
     ) -> PduResult<()> {
+        self.total_calls += 1;
         match self.handle_impl(&req, call)? {
             ScardHandleResponse::Deferred => Ok(()),
             ScardHandleResponse::Common(response) => {
@@ -669,6 +678,7 @@ impl ScardBackend {
     }
 
     fn handle_read_cache(&mut self, call: ReadCacheCall) -> PduResult<ScardHandleResponse> {
+        self.read_cache_calls += 1;
         let (data, return_code) = match self.contexts.read_cache(call)? {
             Some(data) => (data, ReturnCode::Success),
             None => (vec![], ReturnCode::CacheItemNotFound),
@@ -679,6 +689,7 @@ impl ScardBackend {
     }
 
     fn handle_write_cache(&mut self, call: WriteCacheCall) -> PduResult<ScardHandleResponse> {
+        self.write_cache_calls += 1;
         self.contexts.write_cache(call)?;
         Ok(ScardHandleResponse::success_long_return())
     }
@@ -712,6 +723,15 @@ impl ScardBackend {
     }
 }
 
+impl Drop for ScardBackend {
+    fn drop(&mut self) {
+        warn!(
+            "ScardBackend dropped: total calls: {}, read cache: {}, write cache: {}",
+            self.total_calls, self.read_cache_calls, self.write_cache_calls
+        );
+    }
+}
+
 #[derive(Debug)]
 struct Contexts {
     contexts: HashMap<u32, ContextInternal>,
@@ -727,6 +747,7 @@ impl Contexts {
     }
 
     fn establish(&mut self) -> ScardContext {
+        warn!("establishing new context [{}]", self.next_id);
         let ctx_internal = ContextInternal::new();
         let id = self.next_id;
         self.next_id += 1;
@@ -870,6 +891,22 @@ impl ContextInternal {
 
     fn cache_write(&mut self, key: String, val: Vec<u8>) {
         self.cache.insert(key, val);
+    }
+
+    fn dump_cache(&self) {
+        warn!("scard cache dump");
+        for (key, value) in &self.cache {
+            warn!(
+            "scard cache record: key={:?}, value={:?}, len={}",
+            key, value, value.len(),
+            );
+        }
+    }
+}
+
+impl Drop for ContextInternal {
+    fn drop(&mut self) {
+        self.dump_cache();
     }
 }
 
