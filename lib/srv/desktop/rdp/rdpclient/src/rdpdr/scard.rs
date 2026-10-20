@@ -33,6 +33,8 @@ use ironrdp_rdpdr::pdu::esc::{
 use iso7816::Command as CardCommand;
 use log::{debug, warn};
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 use uuid::Uuid;
 
 /// Carries the deferred state for an in-flight `SCARD_IOCTL_GETSTATUSCHANGE` request that was
@@ -155,11 +157,34 @@ pub struct ScardBackend {
     cert_der: Vec<u8>,
     key_der: Vec<u8>,
     pin: String,
+    stats: Arc<ScardStats>,
+}
 
-    // DEBUG
-    total_calls: usize,
-    read_cache_calls: usize,
-    write_cache_calls: usize,
+/// Call counters for a [`ScardBackend`], shareable with other components (e.g. the client).
+#[derive(Debug, Default)]
+pub struct ScardStats {
+    total_calls: AtomicUsize,
+    read_cache_calls: AtomicUsize,
+    write_cache_calls: AtomicUsize,
+    connection_activations: AtomicUsize,
+}
+
+impl ScardStats {
+    /// Records a `send_connection_activated` call and returns its 1-based ordinal.
+    pub fn record_connection_activated(&self) -> usize {
+        self.connection_activations.fetch_add(1, Ordering::Relaxed) + 1
+    }
+
+    /// Logs the current counters.
+    pub fn log(&self, context: &str) {
+        warn!(
+            "scard stats ({}): total calls: {}, read cache: {}, write cache: {}",
+            context,
+            self.total_calls.load(Ordering::Relaxed),
+            self.read_cache_calls.load(Ordering::Relaxed),
+            self.write_cache_calls.load(Ordering::Relaxed)
+        );
+    }
 }
 
 impl std::fmt::Debug for ScardBackend {
@@ -191,10 +216,12 @@ impl ScardBackend {
             cert_der,
             key_der,
             pin,
-            total_calls: 0,
-            read_cache_calls: 0,
-            write_cache_calls: 0,
+            stats: Arc::new(ScardStats::default()),
         }
+    }
+
+    pub fn stats(&self) -> Arc<ScardStats> {
+        self.stats.clone()
     }
 
     pub fn handle(
@@ -202,7 +229,7 @@ impl ScardBackend {
         req: DeviceControlRequest<ScardIoCtlCode>,
         call: ScardCall,
     ) -> PduResult<()> {
-        self.total_calls += 1;
+        self.stats.total_calls.fetch_add(1, Ordering::Relaxed);
         match self.handle_impl(&req, call)? {
             ScardHandleResponse::Deferred => Ok(()),
             ScardHandleResponse::Common(response) => {
@@ -678,7 +705,7 @@ impl ScardBackend {
     }
 
     fn handle_read_cache(&mut self, call: ReadCacheCall) -> PduResult<ScardHandleResponse> {
-        self.read_cache_calls += 1;
+        self.stats.read_cache_calls.fetch_add(1, Ordering::Relaxed);
         let (data, return_code) = match self.contexts.read_cache(call)? {
             Some(data) => (data, ReturnCode::Success),
             None => (vec![], ReturnCode::CacheItemNotFound),
@@ -689,7 +716,7 @@ impl ScardBackend {
     }
 
     fn handle_write_cache(&mut self, call: WriteCacheCall) -> PduResult<ScardHandleResponse> {
-        self.write_cache_calls += 1;
+        self.stats.write_cache_calls.fetch_add(1, Ordering::Relaxed);
         self.contexts.write_cache(call)?;
         Ok(ScardHandleResponse::success_long_return())
     }
@@ -725,10 +752,7 @@ impl ScardBackend {
 
 impl Drop for ScardBackend {
     fn drop(&mut self) {
-        warn!(
-            "ScardBackend dropped: total calls: {}, read cache: {}, write cache: {}",
-            self.total_calls, self.read_cache_calls, self.write_cache_calls
-        );
+        self.stats.log("ScardBackend dropped");
     }
 }
 

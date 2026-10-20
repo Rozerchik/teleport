@@ -119,6 +119,10 @@ impl TeleportRdpdrBackend {
         }
     }
 
+    pub fn scard_stats(&self) -> std::sync::Arc<scard::ScardStats> {
+        self.scard.stats()
+    }
+
     pub fn add_device(&mut self, device_id: u32) -> PduResult<()> {
         self.fs.add_device(device_id)
     }

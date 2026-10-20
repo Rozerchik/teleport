@@ -82,7 +82,7 @@ use tokio::task::{self, JoinError};
 // Export this for crate level use.
 use crate::cliprdr::{ClipboardFn, TeleportCliprdrBackend};
 use crate::license::GoLicenseCache;
-use crate::rdpdr::scard::SCARD_DEVICE_ID;
+use crate::rdpdr::scard::{ScardStats, SCARD_DEVICE_ID};
 use crate::rdpdr::TeleportRdpdrBackend;
 use crate::ssl::TlsStream;
 #[cfg(feature = "fips")]
@@ -109,6 +109,7 @@ pub struct Client {
     x224_processor: Arc<Mutex<x224::Processor>>,
     pending_resize: Arc<Mutex<PendingResize>>,
     activation_factory: ConnectionActivationFactory,
+    scard_stats: Arc<ScardStats>,
 }
 
 /// A global, static tokio runtime for use by `Client`.
@@ -173,15 +174,17 @@ impl Client {
         let (client_handle, function_receiver) = ClientHandle::new(100);
         let function_receiver = Some(function_receiver);
 
+        let rdpdr_backend = TeleportRdpdrBackend::new(
+            client_handle.clone(),
+            params.cert_der,
+            params.key_der,
+            pin,
+            cgo_handle,
+            params.allow_directory_sharing,
+        );
+        let scard_stats = rdpdr_backend.scard_stats();
         let mut rdpdr = Rdpdr::new(
-            Box::new(TeleportRdpdrBackend::new(
-                client_handle.clone(),
-                params.cert_der,
-                params.key_der,
-                pin,
-                cgo_handle,
-                params.allow_directory_sharing,
-            )),
+            Box::new(rdpdr_backend),
             "Teleport".to_string(), // directories will show up as "<directory> on Teleport"
         )
         .with_smartcard(SCARD_DEVICE_ID);
@@ -264,6 +267,7 @@ impl Client {
             connection_result.user_channel_id,
             connection_result.desktop_size,
             connection_result.share_id,
+            &scard_stats,
         )
         .await?;
 
@@ -290,6 +294,7 @@ impl Client {
             x224_processor,
             pending_resize,
             activation_factory: connection_result.activation_factory,
+            scard_stats,
         })
     }
 
@@ -333,6 +338,7 @@ impl Client {
             self.x224_processor.clone(),
             self.client_handle.clone(),
             self.activation_factory.clone(),
+            self.scard_stats.clone(),
         );
 
         let write_loop_handle = Client::run_write_loop(
@@ -360,6 +366,7 @@ impl Client {
         x224_processor: Arc<Mutex<x224::Processor>>,
         write_requester: ClientHandle,
         activation_factory: ConnectionActivationFactory,
+        scard_stats: Arc<ScardStats>,
     ) -> ClientResult<Option<DisconnectDescription>> {
         loop {
             let (action, mut frame) = read_stream.read_pdu().await?;
@@ -423,6 +430,7 @@ impl Client {
                                             activation_factory.user_channel_id(),
                                             desktop_size,
                                             share_id,
+                                            &scard_stats,
                                         )
                                         .await?;
                                         break;
@@ -575,7 +583,13 @@ impl Client {
         user_channel_id: u16,
         desktop_size: DesktopSize,
         share_id: u32,
+        scard_stats: &ScardStats,
     ) -> ClientResult<()> {
+        // Write smart card stats on the second activation (the first one that
+        // follows a Deactivation-Reactivation Sequence).
+        if scard_stats.record_connection_activated() == 2 {
+            scard_stats.log("second connection activation");
+        }
         task::spawn_blocking(move || unsafe {
             ClientResult::from(cgo_handle_rdp_connection_activated(
                 cgo_handle,
