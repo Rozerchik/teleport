@@ -590,6 +590,14 @@ export ironrdp_package_json
 
 IRONRDP_SKIP_BUILD ?= 0
 
+# Set IRONRDP_PROFILING=1 to keep function names (and DWARF) in the WASM so
+# that browser profilers show readable Rust function names.
+IRONRDP_PROFILING ?= 0
+ifeq ($(IRONRDP_PROFILING),1)
+IRONRDP_WASM_OPT_FLAGS = -g
+IRONRDP_WASM_BINDGEN_FLAGS = --keep-debug
+endif
+
 # wasm-bindgen CLI binary to invoke. Overridden to a per-version path under
 # target/ when WASM_BINDGEN_ISOLATE=1 (see ensure-wasm-bindgen); otherwise the
 # shared binary resolved from $$PATH (typically ~/.cargo/bin).
@@ -603,8 +611,8 @@ build-ironrdp-wasm:
 else
 build-ironrdp-wasm: ensure-wasm-deps
 	RUSTFLAGS='--cfg getrandom_backend="wasm_js"' cargo build --package ironrdp --lib --target $(CARGO_WASM_TARGET) --release
-	wasm-opt target/$(CARGO_WASM_TARGET)/release/ironrdp.wasm -o target/$(CARGO_WASM_TARGET)/release/ironrdp.wasm -O
-	$(WASM_BINDGEN) target/$(CARGO_WASM_TARGET)/release/ironrdp.wasm --out-dir $(ironrdp)/pkg --typescript --target web
+	wasm-opt target/$(CARGO_WASM_TARGET)/release/ironrdp.wasm -o target/$(CARGO_WASM_TARGET)/release/ironrdp.wasm -O $(IRONRDP_WASM_OPT_FLAGS)
+	$(WASM_BINDGEN) target/$(CARGO_WASM_TARGET)/release/ironrdp.wasm --out-dir $(ironrdp)/pkg --typescript --target web $(IRONRDP_WASM_BINDGEN_FLAGS)
 	printenv ironrdp_package_json > $(ironrdp)/pkg/package.json
 endif
 
