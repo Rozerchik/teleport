@@ -123,6 +123,7 @@ impl FastPathProcessor {
         user_channel_id: u16,
         share_id: u32,
     ) -> Self {
+        warn!("FastPathProcessor ctor");
         Self {
             fast_path_processor: IronRdpFastPathProcessorBuilder {
                 io_channel_id,
@@ -164,6 +165,7 @@ impl FastPathProcessor {
         respond_cb: &js_sys::Function,
         update_pointer_cb: &js_sys::Function,
     ) -> Result<(), JsValue> {
+        warn!("FastPathProcessor process start");
         self.check_remote_fx(tdp_fast_path_frame)?;
 
         let (rdp_responses, client_updates) = {
@@ -212,6 +214,7 @@ impl FastPathProcessor {
         for output in outputs {
             match output {
                 ActiveStageOutput::GraphicsUpdate(updated_region) => {
+                    warn!("GraphicsUpdate");
                     // Apply the updated region to the canvas.
                     let (image_location, image_data) =
                         extract_partial_image(&self.image, updated_region);
@@ -254,6 +257,8 @@ impl FastPathProcessor {
                 }
             }
         }
+
+        warn!("FastPathProcessor process end");
 
         Ok(())
     }
