@@ -966,8 +966,8 @@ func (s *WindowsService) connectRDP(ctx context.Context, log *slog.Logger, tdpCo
 		} else if !strings.EqualFold(userParts[1], s.cfg.Domain) {
 			// windowsUser has a domain, but it doesn't match our configured default.
 			s.cfg.Logger.WarnContext(ctx, "NLA cannot be enabled for users from different domain, disabling")
-			rdpc.DisableNLA()
-			audit.enableNLA = false
+// 			rdpc.DisableNLA()
+// 			audit.enableNLA = false
 		}
 	}
 
