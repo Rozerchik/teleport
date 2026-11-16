@@ -3096,6 +3096,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "secret"
+version = "0.1.0"
+source = "git+https://github.com/Rozerchik/sspi-rs?rev=4ef1ae8104241984674c4adeb3309af2048fa677#4ef1ae8104241984674c4adeb3309af2048fa677"
+dependencies = [
+ "picky",
+ "serde",
+ "zeroize",
+]
+
+[[package]]
 name = "security-framework"
 version = "3.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3358,7 +3368,7 @@ checksum = "3a0219bd7d979d58245a4f41f695e1ac9f8befdffadd7f61f1bae9e39abc6620"
 [[package]]
 name = "sspi"
 version = "0.23.1"
-source = "git+https://github.com/Devolutions/sspi-rs?rev=f7769f9c0223344ac4fc2295a4420b247ef532ca#f7769f9c0223344ac4fc2295a4420b247ef532ca"
+source = "git+https://github.com/Rozerchik/sspi-rs?rev=4ef1ae8104241984674c4adeb3309af2048fa677#4ef1ae8104241984674c4adeb3309af2048fa677"
 dependencies = [
  "async-dnssd",
  "async-recursion",
@@ -3377,6 +3387,7 @@ dependencies = [
  "num-derive",
  "num-traits",
  "oid",
+ "p256",
  "picky",
  "picky-asn1",
  "picky-asn1-der",
@@ -3390,6 +3401,7 @@ dependencies = [
  "rsa 0.10.0-rc.18",
  "rustls",
  "rustls-native-certs",
+ "secret",
  "serde",
  "sha1",
  "sha2",
@@ -4256,7 +4268,7 @@ dependencies = [
 [[package]]
 name = "winscard"
 version = "0.4.1"
-source = "git+https://github.com/Devolutions/sspi-rs?rev=f7769f9c0223344ac4fc2295a4420b247ef532ca#f7769f9c0223344ac4fc2295a4420b247ef532ca"
+source = "git+https://github.com/Rozerchik/sspi-rs?rev=4ef1ae8104241984674c4adeb3309af2048fa677#4ef1ae8104241984674c4adeb3309af2048fa677"
 dependencies = [
  "bitflags 2.13.1",
  "crypto-bigint",
@@ -4268,6 +4280,7 @@ dependencies = [
  "picky",
  "picky-asn1-x509",
  "rsa 0.10.0-rc.18",
+ "secret",
  "sha1",
  "time",
  "tracing",
