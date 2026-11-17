@@ -3098,7 +3098,7 @@ dependencies = [
 [[package]]
 name = "secret"
 version = "0.1.0"
-source = "git+https://github.com/Rozerchik/sspi-rs?rev=4ef1ae8104241984674c4adeb3309af2048fa677#4ef1ae8104241984674c4adeb3309af2048fa677"
+source = "git+https://github.com/Rozerchik/sspi-rs?rev=980476b5d7014502d726f57fce14f2383c600a43#980476b5d7014502d726f57fce14f2383c600a43"
 dependencies = [
  "picky",
  "serde",
@@ -3368,7 +3368,7 @@ checksum = "3a0219bd7d979d58245a4f41f695e1ac9f8befdffadd7f61f1bae9e39abc6620"
 [[package]]
 name = "sspi"
 version = "0.23.1"
-source = "git+https://github.com/Rozerchik/sspi-rs?rev=4ef1ae8104241984674c4adeb3309af2048fa677#4ef1ae8104241984674c4adeb3309af2048fa677"
+source = "git+https://github.com/Rozerchik/sspi-rs?rev=980476b5d7014502d726f57fce14f2383c600a43#980476b5d7014502d726f57fce14f2383c600a43"
 dependencies = [
  "async-dnssd",
  "async-recursion",
@@ -4268,7 +4268,7 @@ dependencies = [
 [[package]]
 name = "winscard"
 version = "0.4.1"
-source = "git+https://github.com/Rozerchik/sspi-rs?rev=4ef1ae8104241984674c4adeb3309af2048fa677#4ef1ae8104241984674c4adeb3309af2048fa677"
+source = "git+https://github.com/Rozerchik/sspi-rs?rev=980476b5d7014502d726f57fce14f2383c600a43#980476b5d7014502d726f57fce14f2383c600a43"
 dependencies = [
  "bitflags 2.13.1",
  "crypto-bigint",
